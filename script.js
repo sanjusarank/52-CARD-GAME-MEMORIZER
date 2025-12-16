@@ -1,19 +1,25 @@
 const SUITS = ["C", "D", "H", "S"];
 const RANKS = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
 
-const startBtn = document.getElementById("startBtn");
-const mixBtn = document.getElementById("mixBtn");
-const cardCountInput = document.getElementById("cardCount");
+const orderModeBtn = document.getElementById("orderModeBtn");
+const pairModeBtn = document.getElementById("pairModeBtn");
+const orderControls = document.getElementById("orderControls");
+const pairControls = document.getElementById("pairControls");
+const startOrderBtn = document.getElementById("startOrderBtn");
+const mixOrderBtn = document.getElementById("mixOrderBtn");
+const orderCountInput = document.getElementById("orderCount");
+
 const slotsDiv = document.getElementById("slots");
-const cardsDiv = document.getElementById("cards");
+const gameDiv = document.getElementById("game");
 const statusText = document.getElementById("status");
+const sectionTitle = document.getElementById("sectionTitle");
 
 let correctOrder = [];
-let shuffled = [];
+let firstCard = null;
+let lockBoard = false;
+let matchedPairs = 0;
 
-startBtn.onclick = startGame;
-mixBtn.onclick = mixCards;
-
+/* ---------- COMMON ---------- */
 function buildDeck() {
     let deck = [];
     for (let r of RANKS) {
@@ -24,36 +30,56 @@ function buildDeck() {
     return deck;
 }
 
-function startGame() {
-    const deck = buildDeck();
-    const count = Number(cardCountInput.value);
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
 
-    correctOrder = deck.sort(() => Math.random() - 0.5).slice(0, count);
+/* ---------- MODE SWITCH ---------- */
+orderModeBtn.onclick = () => {
+    resetUI();
+    orderControls.classList.remove("hidden");
+    sectionTitle.innerText = "Order Memory";
+};
 
+pairModeBtn.onclick = () => {
+    resetUI();
+    pairControls.classList.remove("hidden");
+    sectionTitle.innerText = "Pair Memory";
+};
+
+function resetUI() {
+    orderControls.classList.add("hidden");
+    pairControls.classList.add("hidden");
     slotsDiv.innerHTML = "";
-    cardsDiv.innerHTML = "";
+    gameDiv.innerHTML = "";
     statusText.innerText = "";
+    mixOrderBtn.disabled = true;
+}
 
-    // Show correct order briefly
-    correctOrder.forEach(() => {
-        const slot = document.createElement("div");
-        slot.className = "slot";
-        slot.ondragover = e => e.preventDefault();
-        slot.ondrop = dropCard;
-        slotsDiv.appendChild(slot);
-    });
+/* ---------- ORDER MEMORY ---------- */
+startOrderBtn.onclick = () => {
+    const count = Number(orderCountInput.value);
+    const deck = shuffle(buildDeck());
+
+    correctOrder = deck.slice(0, count);
+    slotsDiv.innerHTML = "";
+    gameDiv.innerHTML = "";
+    statusText.innerText = "Memorize the order";
 
     correctOrder.forEach(card => {
-        const img = createCard(card);
-        slotsDiv.appendChild(img);
+        const img = document.createElement("img");
+        img.src = `deck/${card}`;
+        img.className = "card";
+        gameDiv.appendChild(img);
     });
 
-    mixBtn.disabled = false;
-}
+    mixOrderBtn.disabled = false;
+};
 
-function mixCards() {
+mixOrderBtn.onclick = () => {
     slotsDiv.innerHTML = "";
-    cardsDiv.innerHTML = "";
+    gameDiv.innerHTML = "";
+    statusText.innerText = "Drag cards into correct order";
 
     correctOrder.forEach(() => {
         const slot = document.createElement("div");
@@ -63,49 +89,98 @@ function mixCards() {
         slotsDiv.appendChild(slot);
     });
 
-    shuffled = [...correctOrder].sort(() => Math.random() - 0.5);
-
-    shuffled.forEach(card => {
-        cardsDiv.appendChild(createCard(card));
+    shuffle([...correctOrder]).forEach(card => {
+        gameDiv.appendChild(createDraggableCard(card));
     });
-}
+};
 
-function createCard(cardName) {
+function createDraggableCard(card) {
     const img = document.createElement("img");
-    img.src = `deck/${cardName}`;
+    img.src = `deck/${card}`;
     img.className = "card";
     img.draggable = true;
-    img.dataset.card = cardName;
+    img.dataset.card = card;
 
     img.ondragstart = e => {
-        e.dataTransfer.setData("card", cardName);
-        e.dataTransfer.setData("id", img);
-        dragged = img;
+        e.dataTransfer.setData("card", card);
     };
 
     return img;
 }
 
 function dropCard(e) {
-    const cardName = e.dataTransfer.getData("card");
-    if (this.children.length === 0) {
-        const img = createCard(cardName);
-        this.appendChild(img);
-        this.classList.add("filled");
-        checkResult();
+    const card = e.dataTransfer.getData("card");
+    if (!this.firstChild) {
+        this.appendChild(createDraggableCard(card));
+        checkOrder();
     }
 }
 
-function checkResult() {
-    const placed = [...slotsDiv.children].map(slot =>
-        slot.firstChild ? slot.firstChild.dataset.card : null
+function checkOrder() {
+    const placed = [...slotsDiv.children].map(
+        s => s.firstChild?.dataset.card
     );
 
-    if (placed.every(v => v !== null)) {
-        if (placed.join() === correctOrder.join()) {
-            statusText.innerText = "✅ Correct Order!";
-        } else {
-            statusText.innerText = "❌ Wrong Order!";
+    if (placed.every(Boolean)) {
+        statusText.innerText =
+            placed.join() === correctOrder.join()
+                ? "✅ Correct Order!"
+                : "❌ Wrong Order!";
+    }
+}
+
+/* ---------- PAIR MEMORY ---------- */
+document.querySelectorAll("#pairControls button").forEach(btn => {
+    btn.onclick = () => startPairMode(Number(btn.dataset.count));
+});
+
+function startPairMode(totalCards) {
+    gameDiv.innerHTML = "";
+    slotsDiv.innerHTML = "";
+    statusText.innerText = "";
+    firstCard = null;
+    lockBoard = false;
+    matchedPairs = 0;
+
+    const deck = shuffle(buildDeck()).slice(0, totalCards / 2);
+    const pairs = shuffle([...deck, ...deck]);
+
+    pairs.forEach(card => {
+        const img = document.createElement("img");
+        img.src = "deck/back.png";
+        img.className = "card";
+        img.dataset.card = card;
+        img.onclick = () => flipCard(img);
+        gameDiv.appendChild(img);
+    });
+}
+
+function flipCard(card) {
+    if (lockBoard || card === firstCard) return;
+
+    card.src = `deck/${card.dataset.card}`;
+
+    if (!firstCard) {
+        firstCard = card;
+        return;
+    }
+
+    if (firstCard.dataset.card === card.dataset.card) {
+        firstCard.onclick = null;
+        card.onclick = null;
+        firstCard = null;
+        matchedPairs++;
+
+        if (matchedPairs * 2 === gameDiv.children.length) {
+            statusText.innerText = "🎉 All pairs matched!";
         }
+    } else {
+        lockBoard = true;
+        setTimeout(() => {
+            firstCard.src = "deck/back.png";
+            card.src = "deck/back.png";
+            firstCard = null;
+            lockBoard = false;
+        }, 700);
     }
 }

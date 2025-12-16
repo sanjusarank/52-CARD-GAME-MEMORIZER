@@ -5,39 +5,50 @@ body {
     text-align: center;
 }
 
+h1 {
+    margin-top: 10px;
+}
+
+button {
+    padding: 8px 14px;
+    margin: 6px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
 .controls {
-    margin: 15px;
+    margin: 12px;
+}
+
+.hidden {
+    display: none;
 }
 
 .row {
     display: flex;
-    justify-content: center;
-    gap: 10px;
     flex-wrap: wrap;
-    margin-bottom: 20px;
-}
-
-.card, .slot {
-    width: 80px;
-    height: 120px;
-    border-radius: 6px;
-    border: 2px dashed #444;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 15px;
 }
 
 .card {
+    width: 80px;
+    height: 120px;
+    border-radius: 6px;
     border: 2px solid #333;
-    cursor: grab;
-}
-
-.slot {
+    cursor: pointer;
     background: #222;
 }
 
-.filled {
-    border-style: solid;
+.slot {
+    width: 80px;
+    height: 120px;
+    border: 2px dashed #555;
+    border-radius: 6px;
 }
 
 #status {
+    margin-top: 15px;
     font-size: 18px;
-    margin-top: 10px;
 }
