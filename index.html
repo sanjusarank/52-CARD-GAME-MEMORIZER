@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Card Memory Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>52 Card Memory Game</h1>
+
+<div class="controls">
+    <input type="number" id="cardCount" min="2" max="52" value="5">
+    <button id="startBtn">Start</button>
+    <button id="mixBtn" disabled>Mix</button>
+</div>
+
+<h3>Target Order</h3>
+<div id="slots" class="row"></div>
+
+<h3>Shuffled Cards</h3>
+<div id="cards" class="row"></div>
+
+<div id="status"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
